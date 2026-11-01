@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/guards";
+import { getCurrentAppUser } from "@/lib/auth";
 import { getActiveTournament } from "@/lib/queries";
 import { getDashboardMetrics } from "@/lib/admin-queries";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,6 +33,10 @@ function Metric({
 }
 
 export default async function AdminDashboard() {
+  // Operators don't have a dashboard — send them straight to their matches.
+  const me = await getCurrentAppUser();
+  if (me?.role === "operator") redirect("/admin/matches");
+
   await requireAdmin();
   const tournament = await getActiveTournament();
 

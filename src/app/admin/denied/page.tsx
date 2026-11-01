@@ -12,8 +12,11 @@ export default function DeniedPage() {
           У вашей учётной записи нет доступа к этому разделу. Если вы оператор,
           откройте назначенный вам матч в разделе «Мои матчи».
         </p>
-        <Link href="/admin" className="text-sm text-accent underline">
-          Вернуться
+        <Link
+          href="/admin/matches"
+          className="inline-block rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-accent-fg"
+        >
+          Мои матчи
         </Link>
       </CardContent>
     </Card>

@@ -26,8 +26,8 @@ export function LoginForm() {
   const [factorId, setFactorId] = useState<string | null>(null);
   const [challengeId, setChallengeId] = useState<string | null>(null);
 
-  async function finish() {
-    router.replace(next);
+  async function finish(path?: string) {
+    router.replace(path ?? next);
     router.refresh();
   }
 
@@ -66,7 +66,11 @@ export function LoginForm() {
       return setError("Учётная запись отключена. Обратитесь к администратору.");
     }
 
-    if (aal?.currentLevel === "aal2") return finish();
+    // Operators start on their match list; the dashboard is admin-only.
+    const target =
+      appUser.role === "operator" && next === "/admin" ? "/admin/matches" : next;
+
+    if (aal?.currentLevel === "aal2") return finish(target);
 
     if (totp) {
       // The user has set up a second factor (optional) → ask for the code.
@@ -81,7 +85,7 @@ export function LoginForm() {
     }
 
     // No second factor — proceed. MFA is not mandatory.
-    return finish();
+    return finish(target);
   }
 
   async function onPasswordSubmit(e: React.FormEvent) {
