@@ -18,7 +18,7 @@ create extension if not exists citext;         -- case-insensitive email
 -- Enumerated types
 -- -----------------------------------------------------------------------------
 create type tournament_status  as enum ('upcoming', 'ongoing', 'completed', 'archived');
-create type tournament_format  as enum ('round_robin', 'groups_playoff', 'single_elimination');
+create type tournament_format  as enum ('round_robin', 'groups_playoff', 'single_elimination', 'league_playoff');
 create type team_status        as enum ('active', 'withdrawn');
 create type player_status      as enum ('active', 'inactive', 'withdrawn');
 create type app_role           as enum ('admin', 'operator');
