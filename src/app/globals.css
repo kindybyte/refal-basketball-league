@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   REFAL Basketball League — design tokens
+   Minimalist sports aesthetic: near-white surface, near-black text, muted
+   basketball orange accent, red reserved for LIVE. Mobile-first throughout.
+--------------------------------------------------------------------------- */
+:root {
+  --background: #fafafa;
+  --surface: #ffffff;
+  --surface-2: #f4f4f5;
+  --foreground: #18181b;
+  --muted: #71717a;
+  --border: #e4e4e7;
+  --accent: #e8793a; /* muted basketball orange */
+  --accent-fg: #ffffff;
+  --live: #e11d48; /* red — LIVE only */
+  --ring: #e8793a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0b0b0c;
+    --surface: #161618;
+    --surface-2: #1f1f23;
+    --foreground: #f4f4f5;
+    --muted: #a1a1aa;
+    --border: #2a2a2e;
+    --accent: #f08a4b;
+    --accent-fg: #1a1a1a;
+    --live: #fb7185;
+    --ring: #f08a4b;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-live: var(--live);
+  --color-ring: var(--ring);
+  --font-sans:
+    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "Noto Sans", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, monospace;
+}
+
+* {
+  border-color: var(--color-border);
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Tap targets comfortable for one-handed mobile use. */
+@media (pointer: coarse) {
+  button,
+  a[role="button"],
+  [data-tap] {
+    min-height: 44px;
+  }
+}
+
+@keyframes pulse-live {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.live-dot {
+  animation: pulse-live 1.4s ease-in-out infinite;
+}
+
+/* Horizontal scroll affordance for wide stat tables on mobile. */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
