@@ -84,8 +84,9 @@ export function SettingsForm({
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <Label htmlFor="format">Формат</Label>
-                <Select id="format" name="format" defaultValue={s.format ?? "groups_playoff"}>
-                  <option value="round_robin">Круговой (Round Robin)</option>
+                <Select id="format" name="format" defaultValue={s.format ?? "league_playoff"}>
+                  <option value="league_playoff">Лига + плей-офф (топ-4: 1×4, 2×3)</option>
+                  <option value="round_robin">Круговой без плей-офф</option>
                   <option value="groups_playoff">Группы + плей-офф</option>
                   <option value="single_elimination">Олимпийская система</option>
                 </Select>

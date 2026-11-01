@@ -16,7 +16,8 @@
 export type ScheduleFormat =
   | "round_robin"
   | "groups_playoff"
-  | "single_elimination";
+  | "single_elimination"
+  | "league_playoff";
 
 export interface TeamInput {
   id: string;
@@ -63,6 +64,8 @@ export interface BracketSlotPlan {
   /** When set, this slot is resolved from a match result (winner/loser). */
   sourceMatchKey?: string;
   takesWinner?: boolean;
+  /** When set, this slot resolves to the team at this rank in the league table. */
+  seedRank?: number;
 }
 
 export interface GroupPlan {
@@ -363,6 +366,52 @@ export function defaultGroupsCount(teamCount: number): number {
   return Math.max(2, Math.round(teamCount / 4));
 }
 
+/**
+ * Top-4 playoff seeded from the single league table: 1st vs 4th, 2nd vs 3rd,
+ * then final and (optionally) a third-place game. Seed slots resolve from the
+ * standings once the league stage is complete (see resolve_bracket in SQL).
+ */
+function buildLeaguePlayoff(thirdPlace: boolean): {
+  matches: PlannedMatch[];
+  slots: BracketSlotPlan[];
+} {
+  const slots: BracketSlotPlan[] = [];
+  const seedRef = (rank: number): Ref => {
+    const key = `seed-${rank}`;
+    slots.push({ key, stage: "round_robin", slotIndex: rank, label: `${rank}-е место`, seedRank: rank });
+    return { kind: "slot", slotKey: key, label: `${rank}-е место` };
+  };
+
+  // Semifinals: 1–4 and 2–3.
+  const matches: PlannedMatch[] = [
+    { key: "sf-1", stage: "semifinal", groupIndex: null, round: 1, home: seedRef(1), away: seedRef(4), scheduledAt: null, court: 1 },
+    { key: "sf-2", stage: "semifinal", groupIndex: null, round: 1, home: seedRef(2), away: seedRef(3), scheduledAt: null, court: 1 },
+  ];
+
+  // Winner slots feed the final.
+  slots.push({ key: "win-sf-1", stage: "semifinal", slotIndex: 1, label: "Победитель ПФ-1", sourceMatchKey: "sf-1", takesWinner: true });
+  slots.push({ key: "win-sf-2", stage: "semifinal", slotIndex: 2, label: "Победитель ПФ-2", sourceMatchKey: "sf-2", takesWinner: true });
+  matches.push({
+    key: "final-1", stage: "final", groupIndex: null, round: 1,
+    home: { kind: "slot", slotKey: "win-sf-1", label: "Победитель ПФ-1" },
+    away: { kind: "slot", slotKey: "win-sf-2", label: "Победитель ПФ-2" },
+    scheduledAt: null, court: 1,
+  });
+
+  if (thirdPlace) {
+    slots.push({ key: "lose-sf-1", stage: "third_place", slotIndex: 1, label: "Проигравший ПФ-1", sourceMatchKey: "sf-1", takesWinner: false });
+    slots.push({ key: "lose-sf-2", stage: "third_place", slotIndex: 2, label: "Проигравший ПФ-2", sourceMatchKey: "sf-2", takesWinner: false });
+    matches.push({
+      key: "third_place-1", stage: "third_place", groupIndex: null, round: 1,
+      home: { kind: "slot", slotKey: "lose-sf-1", label: "Проигравший ПФ-1" },
+      away: { kind: "slot", slotKey: "lose-sf-2", label: "Проигравший ПФ-2" },
+      scheduledAt: null, court: 1,
+    });
+  }
+
+  return { matches, slots };
+}
+
 export function generateSchedule(
   teams: TeamInput[],
   settings: ScheduleSettings,
@@ -396,6 +445,33 @@ export function generateSchedule(
         });
       });
     });
+    if (teams.length % 2 === 1) {
+      warnings.push("Нечётное число команд: в каждом туре одна команда отдыхает.");
+    }
+  } else if (settings.format === "league_playoff") {
+    // Single round-robin (everyone plays everyone once) + top-4 playoff.
+    const rounds = roundRobinRounds(teams.map((t) => t.id), 1);
+    rounds.forEach((round, ri) => {
+      round.forEach(([a, b], mi) => {
+        stageMatches.push({
+          key: `rr-${ri + 1}-${mi + 1}`,
+          stage: "round_robin",
+          groupIndex: null,
+          round: ri + 1,
+          home: { kind: "team", teamId: a },
+          away: { kind: "team", teamId: b },
+          scheduledAt: null,
+          court: 1,
+        });
+      });
+    });
+    if (teams.length >= 4) {
+      const pl = buildLeaguePlayoff(settings.thirdPlaceMatch ?? true);
+      playoffMatches = pl.matches;
+      slots = pl.slots;
+    } else {
+      warnings.push("Для плей-офф нужно минимум 4 команды — сыграна только лига.");
+    }
     if (teams.length % 2 === 1) {
       warnings.push("Нечётное число команд: в каждом туре одна команда отдыхает.");
     }

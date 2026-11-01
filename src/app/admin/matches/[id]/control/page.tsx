@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireMatchController } from "@/lib/guards";
 import { createClient } from "@/lib/supabase/server";
+import { Card, CardContent } from "@/components/ui/card";
 import { OperatorConsole, type ConsolePlayer, type ConsoleEvent } from "./operator-console";
 
 export const metadata = { title: "Ведение матча" };
@@ -20,8 +22,27 @@ export default async function MatchControlPage({
     .eq("id", id)
     .maybeSingle();
 
-  if (!match || !match.home_team_id || !match.away_team_id) {
-    notFound();
+  if (!match) notFound();
+
+  // Teams may still be placeholders (playoff match awaiting feeders, or a team
+  // not yet assigned). Explain it instead of a bare 404.
+  if (!match.home_team_id || !match.away_team_id) {
+    return (
+      <Card className="mx-auto max-w-md">
+        <CardContent className="space-y-3 p-6 text-center text-sm">
+          <h1 className="text-lg font-bold">Участники ещё не определены</h1>
+          <p className="text-muted">
+            Вести этот матч нельзя, пока обе команды не известны. Для матчей
+            плей-офф участники подставляются автоматически после подтверждения
+            результатов предыдущих стадий. Для группового матча назначьте команды
+            в настройках или дождитесь публикации расписания.
+          </p>
+          <Link href="/admin/matches" className="text-accent underline">
+            ← К списку матчей
+          </Link>
+        </CardContent>
+      </Card>
+    );
   }
 
   const teamIds = [match.home_team_id, match.away_team_id];

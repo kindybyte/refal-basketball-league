@@ -152,6 +152,35 @@ describe("generateSchedule — groups + playoff", () => {
   });
 });
 
+describe("generateSchedule — league + top-4 playoff", () => {
+  it("6 teams: single round-robin (15 games) + 2 semifinals + final + 3rd place", () => {
+    const res = generateSchedule(makeTeams(6), baseSettings({ format: "league_playoff" }));
+    expect(res.errors).toEqual([]);
+    const league = res.matches.filter((m) => m.stage === "round_robin");
+    expect(league.length).toBe(15); // C(6,2), each pair once
+    expect(res.matches.filter((m) => m.stage === "semifinal").length).toBe(2);
+    expect(res.matches.filter((m) => m.stage === "final").length).toBe(1);
+    expect(res.matches.filter((m) => m.stage === "third_place").length).toBe(1);
+  });
+
+  it("seeds the semifinals 1v4 and 2v3 from the league table", () => {
+    const res = generateSchedule(makeTeams(4), baseSettings({ format: "league_playoff" }));
+    const sfs = res.matches.filter((m) => m.stage === "semifinal");
+    const labels = sfs.map((m) => `${(m.home as { label: string }).label} vs ${(m.away as { label: string }).label}`);
+    expect(labels).toContain("1-е место vs 4-е место");
+    expect(labels).toContain("2-е место vs 3-е место");
+    // Seed slots carry a seedRank for standings-based resolution.
+    const seeds = res.slots.filter((s) => s.seedRank);
+    expect(seeds.map((s) => s.seedRank).sort()).toEqual([1, 2, 3, 4]);
+  });
+
+  it("warns when there are fewer than 4 teams (league only)", () => {
+    const res = generateSchedule(makeTeams(3), baseSettings({ format: "league_playoff" }));
+    expect(res.matches.some((m) => m.stage === "semifinal")).toBe(false);
+    expect(res.warnings.join(" ")).toMatch(/минимум 4 команды/);
+  });
+});
+
 describe("generateSchedule — single elimination", () => {
   it("8 teams → quarterfinals, semifinals, final", () => {
     const res = generateSchedule(makeTeams(8), baseSettings({ format: "single_elimination" }));

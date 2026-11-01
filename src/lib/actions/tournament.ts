@@ -10,7 +10,7 @@ import type { ActionResult } from "@/lib/actions/types";
 const schema = z.object({
   name: z.string().trim().min(2).max(80),
   status: z.enum(["upcoming", "ongoing", "completed", "archived"]),
-  format: z.enum(["round_robin", "groups_playoff", "single_elimination"]),
+  format: z.enum(["round_robin", "groups_playoff", "single_elimination", "league_playoff"]),
   start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   daily_start_time: z.string().regex(/^\d{2}:\d{2}$/),

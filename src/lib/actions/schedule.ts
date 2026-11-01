@@ -186,6 +186,7 @@ export async function publishScheduleAction(): Promise<ActionResult> {
         label: s.label,
         source_match_id: s.sourceMatchKey ? matchIdByKey.get(s.sourceMatchKey) : null,
         takes_winner: s.takesWinner ?? true,
+        seed_rank: s.seedRank ?? null,
       })
       .select("id")
       .single();
@@ -204,6 +205,46 @@ export async function publishScheduleAction(): Promise<ActionResult> {
       await supabase.from("matches").update(update).eq("id", matchId);
     }
   }
+
+  revalidatePath("/admin/schedule");
+  revalidatePath("/admin/matches");
+  revalidatePath("/schedule");
+  return { ok: true };
+}
+
+/**
+ * Destructive reset: removes the whole published calendar (matches, their
+ * events/results, bracket slots, groups and standings) so it can be regenerated
+ * — e.g. after the team roster changes. Confirmed results ARE discarded, so the
+ * UI asks for explicit confirmation before calling this.
+ */
+export async function resetScheduleAction(): Promise<ActionResult> {
+  await requireAdmin();
+  const supabase = await createClient();
+  const tournament = await getActiveTournament();
+  if (!tournament) return { ok: false, error: "Турнир не найден" };
+  const tid = tournament.id;
+
+  // matches cascade to match_events / match_results / match_periods.
+  const steps = [
+    supabase.from("matches").delete().eq("tournament_id", tid),
+    supabase.from("bracket_slots").delete().eq("tournament_id", tid),
+    supabase.from("standings").delete().eq("tournament_id", tid),
+  ];
+  for (const step of steps) {
+    const { error } = await step;
+    if (error) return { ok: false, error: error.message };
+  }
+  // Detach teams from groups, then drop the groups.
+  await supabase.from("teams").update({ group_id: null }).eq("tournament_id", tid);
+  await supabase.from("tournament_groups").delete().eq("tournament_id", tid);
+
+  await supabase.rpc("log_audit", {
+    p_action: "schedule.reset",
+    p_entity_type: "tournament",
+    p_entity_id: tid,
+    p_summary: "Расписание сброшено для пересоздания",
+  });
 
   revalidatePath("/admin/schedule");
   revalidatePath("/admin/matches");

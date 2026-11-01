@@ -7,7 +7,11 @@
  */
 
 export type TournamentStatus = "upcoming" | "ongoing" | "completed" | "archived";
-export type TournamentFormat = "round_robin" | "groups_playoff" | "single_elimination";
+export type TournamentFormat =
+  | "round_robin"
+  | "groups_playoff"
+  | "single_elimination"
+  | "league_playoff";
 export type MatchStatus =
   | "scheduled"
   | "live"

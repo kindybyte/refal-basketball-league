@@ -49,6 +49,7 @@ export function MatchesManager({
         const isLive = m.status === "live";
         const pending2 = m.status === "pending_confirmation";
         const assigned = assignments[m.id];
+        const teamsReady = !!m.home_team_id && !!m.away_team_id;
         return (
           <Card key={m.id}>
             <CardContent className="space-y-2 p-3">
@@ -72,13 +73,18 @@ export function MatchesManager({
               </div>
 
               <div className="flex flex-wrap gap-1 pt-1">
-                {(m.status === "scheduled" || isLive || pending2) && (
-                  <Link href={`/admin/matches/${m.id}/control`}>
-                    <Button size="sm" variant={isLive ? "primary" : "secondary"}>
-                      {isLive ? "LIVE-консоль" : "Открыть консоль"}
-                    </Button>
-                  </Link>
-                )}
+                {(m.status === "scheduled" || isLive || pending2) &&
+                  (teamsReady ? (
+                    <Link href={`/admin/matches/${m.id}/control`}>
+                      <Button size="sm" variant={isLive ? "primary" : "secondary"}>
+                        {isLive ? "LIVE-консоль" : "Открыть консоль"}
+                      </Button>
+                    </Link>
+                  ) : (
+                    <span className="text-xs text-muted">
+                      Участники не определены — консоль недоступна
+                    </span>
+                  ))}
 
                 {isAdmin && pending2 && (
                   <>

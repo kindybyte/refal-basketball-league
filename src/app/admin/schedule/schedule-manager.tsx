@@ -10,6 +10,7 @@ import { FormBanner } from "@/components/ui/field";
 import {
   previewScheduleAction,
   publishScheduleAction,
+  resetScheduleAction,
   type SchedulePreview,
 } from "@/lib/actions/schedule";
 import { stageLabel, formatDateTime } from "@/lib/format";
@@ -49,19 +50,50 @@ export function ScheduleManager({
     });
   }
 
+  function doReset() {
+    if (
+      !confirm(
+        "Сбросить всё расписание? Будут удалены все матчи, события, результаты и турнирная таблица этого турнира. Действие необратимо.",
+      )
+    )
+      return;
+    startTransition(async () => {
+      const res = await resetScheduleAction();
+      if (res.ok) {
+        setBanner({ kind: "success", msg: "Расписание сброшено. Можно сгенерировать заново." });
+        setPreview(null);
+        router.refresh();
+      } else {
+        setBanner({ kind: "error", msg: res.error ?? "Ошибка" });
+      }
+    });
+  }
+
   const canFit = preview && preview.errors.length === 0;
 
   return (
     <div className="space-y-4">
       {alreadyPublished ? (
-        <FormBanner kind="info">
-          Расписание уже опубликовано. Повторная генерация отключена, чтобы не
-          потерять сыгранные результаты.{" "}
-          <Link href="/admin/matches" className="underline">
-            Перейти к матчам
-          </Link>
-          .
-        </FormBanner>
+        <div className="space-y-3">
+          <FormBanner kind="info">
+            Расписание уже опубликовано. Повторная генерация отключена, чтобы не
+            потерять сыгранные результаты.{" "}
+            <Link href="/admin/matches" className="underline">
+              Перейти к матчам
+            </Link>
+            .
+          </FormBanner>
+          <Card>
+            <CardContent className="flex flex-wrap items-center justify-between gap-2 p-4">
+              <p className="text-sm text-muted">
+                Изменили состав команд? Сбросьте расписание и сгенерируйте заново.
+              </p>
+              <Button variant="danger" onClick={doReset} disabled={pending}>
+                Сбросить расписание
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       ) : (
         <Card>
           <CardContent className="space-y-3 p-4 text-sm">
