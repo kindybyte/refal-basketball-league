@@ -88,3 +88,68 @@ export async function deleteTeamAction(id: string): Promise<ActionResult> {
   revalidatePath("/admin/teams");
   return { ok: true };
 }
+
+const ALLOWED_LOGO_TYPES: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+};
+const MAX_LOGO_BYTES = 2 * 1024 * 1024;
+
+/** Uploads a team logo to the `team-logos` bucket and stores its path.
+ *  Validates MIME type + size and uses a random filename (spec §11.7). */
+export async function uploadTeamLogoAction(
+  teamId: string,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requireAdmin();
+  const file = formData.get("logo");
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false, error: "Файл не выбран" };
+  }
+  if (file.size > MAX_LOGO_BYTES) {
+    return { ok: false, error: "Файл больше 2 МБ" };
+  }
+  const ext = ALLOWED_LOGO_TYPES[file.type];
+  if (!ext) {
+    return { ok: false, error: "Допустимы только PNG, JPEG или WebP" };
+  }
+
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+  const path = `${teamId}/${crypto.randomUUID()}.${ext}`;
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const { error: upErr } = await admin.storage
+    .from("team-logos")
+    .upload(path, bytes, { contentType: file.type, upsert: true });
+  if (upErr) return { ok: false, error: `Загрузка не удалась: ${upErr.message}` };
+
+  const supabase = await createClient();
+  // Remove the previous object (best effort) before switching the path.
+  const { data: prev } = await supabase.from("teams").select("logo_path").eq("id", teamId).maybeSingle();
+  if (prev?.logo_path && prev.logo_path !== path) {
+    await admin.storage.from("team-logos").remove([prev.logo_path]);
+  }
+  const { error } = await supabase.from("teams").update({ logo_path: path }).eq("id", teamId);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/admin/teams");
+  revalidatePath("/teams");
+  revalidatePath(`/teams/${teamId}`);
+  return { ok: true };
+}
+
+export async function removeTeamLogoAction(teamId: string): Promise<ActionResult> {
+  await requireAdmin();
+  const supabase = await createClient();
+  const { data: prev } = await supabase.from("teams").select("logo_path").eq("id", teamId).maybeSingle();
+  if (prev?.logo_path) {
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    createAdminClient().storage.from("team-logos").remove([prev.logo_path]);
+  }
+  const { error } = await supabase.from("teams").update({ logo_path: null }).eq("id", teamId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/admin/teams");
+  revalidatePath("/teams");
+  return { ok: true };
+}

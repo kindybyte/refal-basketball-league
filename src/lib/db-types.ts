@@ -104,6 +104,8 @@ export interface PublicMatch {
   away_score: number | null;
   is_final: boolean;
   winner_team_id: string | null;
+  home_logo_path: string | null;
+  away_logo_path: string | null;
 }
 
 export interface PublicMatchEvent {
@@ -137,6 +139,7 @@ export interface PublicStanding {
   short_name: string;
   color: string;
   group_name: string | null;
+  logo_path: string | null;
 }
 
 export interface PublicPlayerStats {

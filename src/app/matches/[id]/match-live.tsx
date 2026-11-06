@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge, LiveBadge } from "@/components/ui/badge";
+import { TeamAvatar } from "@/components/team-avatar";
 import { stageLabel, statusLabel, formatDateTime } from "@/lib/format";
 import type { PublicMatch, PublicMatchEvent } from "@/lib/db-types";
 
@@ -81,7 +82,7 @@ export function MatchLiveView({
       <Card>
         <CardContent className="p-5">
           <div className="grid grid-cols-3 items-center gap-2">
-            <TeamSide label={match.home_label} color={match.home_color} win={homeWin} />
+            <TeamSide label={match.home_label} color={match.home_color} logoPath={match.home_logo_path} win={homeWin} />
             <div className="text-center">
               <div className="text-4xl font-black tabular-nums">
                 {match.home_score ?? "–"}
@@ -92,7 +93,7 @@ export function MatchLiveView({
                 {statusLabel(match.status)}
               </Badge>
             </div>
-            <TeamSide label={match.away_label} color={match.away_color} win={awayWin} right />
+            <TeamSide label={match.away_label} color={match.away_color} logoPath={match.away_logo_path} win={awayWin} right />
           </div>
         </CardContent>
       </Card>
@@ -134,22 +135,19 @@ export function MatchLiveView({
 function TeamSide({
   label,
   color,
+  logoPath,
   win,
   right,
 }: {
   label: string;
   color: string | null;
+  logoPath: string | null;
   win: boolean;
   right?: boolean;
 }) {
   return (
     <div className={`flex flex-col items-center gap-2 ${right ? "order-last" : ""}`}>
-      <span
-        className="flex h-12 w-12 items-center justify-center rounded-full text-base font-black text-white"
-        style={{ backgroundColor: color ?? "var(--color-muted)" }}
-      >
-        {label.slice(0, 2).toUpperCase()}
-      </span>
+      <TeamAvatar short={label} name={label} color={color} logoPath={logoPath} size={56} />
       <span className={`text-center text-sm ${win ? "font-bold" : "font-medium"}`}>{label}</span>
     </div>
   );

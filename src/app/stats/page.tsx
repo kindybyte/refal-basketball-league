@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getActiveTournament, getPlayerStats } from "@/lib/queries";
 import { isSupabaseConfigured } from "@/lib/env";
+import { features } from "@/lib/features";
 import { computeAverages } from "@/lib/stats";
 import type { PublicPlayerStats, PlayerAverages } from "@/lib/db-types";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,6 +22,14 @@ const categories: { key: keyof PlayerAverages; title: string; unit: string }[] =
 ];
 
 export default async function StatsPage() {
+  if (!features.individualStats) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-xl font-bold">Статистика и лидеры</h1>
+        <EmptyState>Раздел индивидуальной статистики временно недоступен.</EmptyState>
+      </div>
+    );
+  }
   if (!isSupabaseConfigured) return <SetupNotice />;
   const tournament = await getActiveTournament();
   if (!tournament) return <EmptyState>Турнир ещё не создан.</EmptyState>;

@@ -4,6 +4,7 @@ import { getActiveTournament, getTeams } from "@/lib/queries";
 import { isSupabaseConfigured } from "@/lib/env";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge, DemoBadge } from "@/components/ui/badge";
+import { TeamAvatar } from "@/components/team-avatar";
 import { SetupNotice, EmptyState } from "@/components/site/setup-notice";
 
 export const metadata: Metadata = { title: "Команды" };
@@ -30,12 +31,7 @@ export default async function TeamsPage() {
           <Link key={t.id} href={`/teams/${t.id}`}>
             <Card className="transition-colors hover:border-accent">
               <CardContent className="flex items-center gap-3 p-4">
-                <span
-                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-base font-black text-white"
-                  style={{ backgroundColor: t.color }}
-                >
-                  {t.short_name.slice(0, 3)}
-                </span>
+                <TeamAvatar short={t.short_name} name={t.name} color={t.color} logoPath={t.logo_path} size={48} />
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="truncate font-semibold">{t.name}</span>

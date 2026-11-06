@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, MapPin, CalendarDays } from "lucide-react";
+import { TeamAvatar } from "@/components/team-avatar";
 import {
   getActiveTournament,
   getUpcomingMatches,
@@ -9,6 +10,7 @@ import {
   getPlayerStats,
 } from "@/lib/queries";
 import { isSupabaseConfigured } from "@/lib/env";
+import { features } from "@/lib/features";
 import { computeAverages } from "@/lib/stats";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge, LiveBadge, DemoBadge } from "@/components/ui/badge";
@@ -45,7 +47,7 @@ export default async function HomePage() {
     getLiveMatches(tournament.id),
     getRecentResults(tournament.id, 4),
     getStandings(tournament.id),
-    getPlayerStats(tournament.id),
+    features.individualStats ? getPlayerStats(tournament.id) : Promise.resolve([]),
   ]);
 
   const nextMatch = upcoming[0];
@@ -85,9 +87,9 @@ export default async function HomePage() {
                 <span>{formatDateTime(nextMatch.scheduled_at)}</span>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <TeamBig label={nextMatch.home_label} color={nextMatch.home_color} />
-                <span className="text-sm font-semibold text-muted">—</span>
-                <TeamBig label={nextMatch.away_label} color={nextMatch.away_color} align="right" />
+                <TeamBig label={nextMatch.home_label} color={nextMatch.home_color} logoPath={nextMatch.home_logo_path} />
+                <span className="text-sm font-semibold text-muted">VS</span>
+                <TeamBig label={nextMatch.away_label} color={nextMatch.away_color} logoPath={nextMatch.away_logo_path} />
               </div>
               {nextMatch.scheduled_at && (
                 <div className="flex flex-col items-center gap-1 rounded-xl bg-surface-2 py-3">
@@ -174,6 +176,7 @@ export default async function HomePage() {
         )}
       </section>
 
+      {features.individualStats && (
       <section className="space-y-2">
         <SectionTitle title="Лидеры турнира" href="/stats" />
         {topScorers.length === 0 ? (
@@ -206,6 +209,7 @@ export default async function HomePage() {
           </Card>
         )}
       </section>
+      )}
     </div>
   );
 }
@@ -229,14 +233,26 @@ function TournamentHeader({
   isDemo?: boolean;
 }) {
   return (
-    <div className="space-y-1">
-      <div className="flex flex-wrap items-center gap-2">
-        <h1 className="text-xl font-black tracking-tight sm:text-2xl">{title}</h1>
-        {isDemo && <DemoBadge />}
+    <div className="hero-surface fade-in card-shadow -mx-4 -mt-4 mb-2 rounded-b-3xl border-b border-border px-4 pb-6 pt-6 sm:mx-0 sm:mt-0 sm:rounded-3xl sm:border">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
         {status && <Badge variant="accent">{statusLabel(status)}</Badge>}
+        {isDemo && <DemoBadge />}
       </div>
-      {venue && <p className="text-sm text-muted">{venue}</p>}
-      {dates && <p className="text-sm text-muted">{dates}</p>}
+      <h1 className="text-2xl font-black leading-tight tracking-tight sm:text-3xl">
+        {title}
+      </h1>
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
+        {venue && (
+          <span className="inline-flex items-center gap-1.5">
+            <MapPin className="h-4 w-4 text-accent" /> {venue}
+          </span>
+        )}
+        {dates && (
+          <span className="inline-flex items-center gap-1.5">
+            <CalendarDays className="h-4 w-4 text-accent" /> {dates}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -271,24 +287,15 @@ function SectionTitle({
 function TeamBig({
   label,
   color,
-  align = "left",
+  logoPath,
 }: {
   label: string;
   color: string | null;
-  align?: "left" | "right";
+  logoPath?: string | null;
 }) {
   return (
-    <div
-      className={`flex flex-1 flex-col items-center gap-2 ${
-        align === "right" ? "sm:items-center" : "sm:items-center"
-      }`}
-    >
-      <span
-        className="flex h-12 w-12 items-center justify-center rounded-full text-lg font-black text-white"
-        style={{ backgroundColor: color ?? "var(--color-muted)" }}
-      >
-        {label.slice(0, 2).toUpperCase()}
-      </span>
+    <div className="flex flex-1 flex-col items-center gap-2">
+      <TeamAvatar short={label} name={label} color={color} logoPath={logoPath} size={56} />
       <span className="text-center text-sm font-semibold">{label}</span>
     </div>
   );

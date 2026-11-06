@@ -2,27 +2,26 @@ import Link from "next/link";
 import type { PublicMatch } from "@/lib/db-types";
 import { Card } from "@/components/ui/card";
 import { LiveBadge, Badge, DemoBadge } from "@/components/ui/badge";
+import { TeamAvatar } from "@/components/team-avatar";
 import { formatDateTime, stageLabel, statusLabel } from "@/lib/format";
 
 function TeamRow({
   label,
   color,
+  logoPath,
   score,
   winner,
 }: {
   label: string;
   color: string | null;
+  logoPath: string | null;
   score: number | null;
   winner: boolean;
 }) {
   return (
     <div className="flex items-center justify-between gap-2">
       <div className="flex min-w-0 items-center gap-2">
-        <span
-          className="h-3 w-3 shrink-0 rounded-full"
-          style={{ backgroundColor: color ?? "var(--color-muted)" }}
-          aria-hidden
-        />
+        <TeamAvatar short={label} name={label} color={color} logoPath={logoPath} size={24} />
         <span className={`truncate text-sm ${winner ? "font-bold" : ""}`}>
           {label}
         </span>
@@ -61,12 +60,14 @@ export function MatchCard({ match }: { match: PublicMatch }) {
           <TeamRow
             label={match.home_label}
             color={match.home_color}
+            logoPath={match.home_logo_path}
             score={match.home_score}
             winner={homeWin}
           />
           <TeamRow
             label={match.away_label}
             color={match.away_color}
+            logoPath={match.away_logo_path}
             score={match.away_score}
             winner={awayWin}
           />

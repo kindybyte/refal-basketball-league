@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPlayer, getPlayerStatsOne, getTeam } from "@/lib/queries";
 import { isSupabaseConfigured } from "@/lib/env";
+import { features } from "@/lib/features";
 import { computeAverages, formatPct } from "@/lib/stats";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge, DemoBadge } from "@/components/ui/badge";
@@ -30,7 +31,7 @@ export default async function PlayerPage({
   if (!player) notFound();
 
   const [stats, team] = await Promise.all([
-    getPlayerStatsOne(id),
+    features.individualStats ? getPlayerStatsOne(id) : Promise.resolve(null),
     player.team_id ? getTeam(player.team_id) : Promise.resolve(null),
   ]);
   const avg = stats ? computeAverages(stats) : null;
@@ -84,8 +85,9 @@ export default async function PlayerPage({
       ) : (
         <Card>
           <CardContent className="p-5 text-sm text-muted">
-            Индивидуальная статистика этого игрока не публикуется (нет согласия на
-            публикацию) либо матчи ещё не сыграны.
+            {features.individualStats
+              ? "Индивидуальная статистика этого игрока не публикуется (нет согласия на публикацию) либо матчи ещё не сыграны."
+              : "Индивидуальная статистика временно недоступна."}
           </CardContent>
         </Card>
       )}

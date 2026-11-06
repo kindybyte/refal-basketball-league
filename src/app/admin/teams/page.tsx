@@ -22,7 +22,7 @@ export default async function AdminTeamsPage() {
   const [{ data: teams }, { data: groups }] = await Promise.all([
     supabase
       .from("teams")
-      .select("id, name, short_name, color, group_id, description")
+      .select("id, name, short_name, color, group_id, description, logo_path")
       .eq("tournament_id", tournament.id)
       .order("name"),
     supabase

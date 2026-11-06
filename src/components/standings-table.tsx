@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { PublicStanding } from "@/lib/db-types";
 import { Card } from "@/components/ui/card";
+import { TeamAvatar } from "@/components/team-avatar";
 
 export function StandingsTable({ rows }: { rows: PublicStanding[] }) {
   return (
@@ -26,7 +27,7 @@ export function StandingsTable({ rows }: { rows: PublicStanding[] }) {
                 <td className="px-3 py-2 text-muted tabular-nums">{r.rank ?? "—"}</td>
                 <td className="px-3 py-2">
                   <Link href={`/teams/${r.team_id}`} className="flex items-center gap-2 hover:underline">
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: r.color }} />
+                    <TeamAvatar short={r.short_name} name={r.team_name} color={r.color} logoPath={r.logo_path} size={22} />
                     <span className="truncate">{r.team_name}</span>
                   </Link>
                 </td>

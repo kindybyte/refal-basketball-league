@@ -12,6 +12,7 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge, DemoBadge } from "@/components/ui/badge";
 import { MatchCard } from "@/components/match/match-card";
+import { TeamAvatar } from "@/components/team-avatar";
 import { SetupNotice } from "@/components/site/setup-notice";
 
 export async function generateMetadata({
@@ -48,12 +49,7 @@ export default async function TeamPage({
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
-        <span
-          className="flex h-14 w-14 items-center justify-center rounded-full text-lg font-black text-white"
-          style={{ backgroundColor: team.color }}
-        >
-          {team.short_name.slice(0, 3)}
-        </span>
+        <TeamAvatar short={team.short_name} name={team.name} color={team.color} logoPath={team.logo_path} size={56} />
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold">{team.name}</h1>

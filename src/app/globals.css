@@ -6,30 +6,36 @@
    basketball orange accent, red reserved for LIVE. Mobile-first throughout.
 --------------------------------------------------------------------------- */
 :root {
-  --background: #fafafa;
+  --background: #f6f6f7;
   --surface: #ffffff;
-  --surface-2: #f4f4f5;
-  --foreground: #18181b;
-  --muted: #71717a;
-  --border: #e4e4e7;
+  --surface-2: #f0f0f2;
+  --foreground: #16161a;
+  --muted: #6b6b74;
+  --border: #e6e6ea;
   --accent: #e8793a; /* muted basketball orange */
+  --accent-2: #f2994a; /* lighter orange for gradients */
   --accent-fg: #ffffff;
   --live: #e11d48; /* red — LIVE only */
   --ring: #e8793a;
+  --shadow-sm: 0 1px 2px rgba(16, 16, 26, 0.05);
+  --shadow-md: 0 6px 24px -8px rgba(16, 16, 26, 0.12);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0b0b0c;
-    --surface: #161618;
-    --surface-2: #1f1f23;
-    --foreground: #f4f4f5;
-    --muted: #a1a1aa;
-    --border: #2a2a2e;
+    --background: #0a0a0c;
+    --surface: #151519;
+    --surface-2: #1e1e24;
+    --foreground: #f3f3f5;
+    --muted: #9b9ba6;
+    --border: #28282f;
     --accent: #f08a4b;
-    --accent-fg: #1a1a1a;
+    --accent-2: #f2994a;
+    --accent-fg: #1a1208;
     --live: #fb7185;
     --ring: #f08a4b;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 8px 28px -10px rgba(0, 0, 0, 0.6);
   }
 }
 
@@ -41,6 +47,7 @@
   --color-muted: var(--muted);
   --color-border: var(--border);
   --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
   --color-accent-fg: var(--accent-fg);
   --color-live: var(--live);
   --color-ring: var(--ring);
@@ -79,8 +86,36 @@ body {
   animation: pulse-live 1.4s ease-in-out infinite;
 }
 
+/* Warm hero backdrop for the home banner. */
+.hero-surface {
+  background:
+    radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 55%),
+    radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--accent-2) 16%, transparent), transparent 55%),
+    var(--surface);
+}
+
+.card-shadow {
+  box-shadow: var(--shadow-sm);
+}
+
 /* Horizontal scroll affordance for wide stat tables on mobile. */
 .table-scroll {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+}
+.table-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+.table-scroll::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 9999px;
+}
+
+/* Subtle fade-in for content. */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+.fade-in {
+  animation: fade-in 0.3s ease both;
 }
