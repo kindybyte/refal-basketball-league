@@ -38,6 +38,10 @@ export interface ScheduleSettings {
   roundsPerOpponent?: number; // round_robin / group stage, default 1
   thirdPlaceMatch?: boolean;
   groupsCount?: number; // groups_playoff; default derived from team count
+  /** Allowed days of week (0=Sun..6=Sat). Empty/undefined ⇒ every day. */
+  weekdays?: number[];
+  /** Minutes between consecutive match START times. Default: duration+break. */
+  matchIntervalMin?: number;
 }
 
 /** A reference to a participant: a concrete team, or a bracket placeholder. */
@@ -93,15 +97,29 @@ function pad(n: number): string {
   return n.toString().padStart(2, "0");
 }
 
-/** Inclusive list of YYYY-MM-DD between start and end (UTC-safe). */
-function enumerateDays(start: string, end: string, explicit?: string[]): string[] {
-  if (explicit && explicit.length > 0) return [...explicit].sort();
-  const days: string[] = [];
-  const d = new Date(`${start}T00:00:00Z`);
-  const last = new Date(`${end}T00:00:00Z`);
-  while (d <= last) {
-    days.push(d.toISOString().slice(0, 10));
-    d.setUTCDate(d.getUTCDate() + 1);
+/** Inclusive list of YYYY-MM-DD between start and end (UTC-safe), optionally
+ *  restricted to specific weekdays (0=Sun..6=Sat). */
+function enumerateDays(
+  start: string,
+  end: string,
+  explicit?: string[],
+  weekdays?: number[],
+): string[] {
+  let days: string[];
+  if (explicit && explicit.length > 0) {
+    days = [...explicit].sort();
+  } else {
+    days = [];
+    const d = new Date(`${start}T00:00:00Z`);
+    const last = new Date(`${end}T00:00:00Z`);
+    while (d <= last) {
+      days.push(d.toISOString().slice(0, 10));
+      d.setUTCDate(d.getUTCDate() + 1);
+    }
+  }
+  if (weekdays && weekdays.length > 0) {
+    const allowed = new Set(weekdays);
+    days = days.filter((day) => allowed.has(new Date(`${day}T00:00:00Z`).getUTCDay()));
   }
   return days;
 }
@@ -173,10 +191,13 @@ function assignTimes(
   notBeforeAbs = 0,
 ): { errors: string[]; lastEndAbs: number } {
   const errors: string[] = [];
-  const days = enumerateDays(settings.startDate, settings.endDate, settings.playingDays);
+  const days = enumerateDays(
+    settings.startDate, settings.endDate, settings.playingDays, settings.weekdays,
+  );
   const dayStart = parseTime(settings.dailyStartTime);
   const dayEnd = parseTime(settings.dailyEndTime);
-  const step = settings.matchDurationMin + settings.breakBetweenMin;
+  // Start-to-start spacing between matches on a day (e.g. 60 ⇒ 19:00, 20:00…).
+  const step = settings.matchIntervalMin ?? settings.matchDurationMin + settings.breakBetweenMin;
   const restMin = settings.minRestHours * 60;
 
   // Precompute all slots (day, time, court) in chronological order.
@@ -546,8 +567,12 @@ export function generateSchedule(
   const matches = [...stageMatches, ...playoffMatches];
 
   // Does the last match end within the allowed window?
-  const days = enumerateDays(settings.startDate, settings.endDate, settings.playingDays);
-  if (days.length === 0) errors.push("Не заданы игровые дни в указанном диапазоне.");
+  const days = enumerateDays(
+    settings.startDate, settings.endDate, settings.playingDays, settings.weekdays,
+  );
+  if (days.length === 0) {
+    errors.push("Нет игровых дней: проверьте диапазон дат и выбранные дни недели.");
+  }
 
   return { groups, matches, slots, warnings, errors };
 }

@@ -25,7 +25,19 @@ interface SettingsShape {
   third_place_match?: boolean;
   min_games_for_leaders?: number;
   periods_per_game?: number;
+  game_weekdays?: number[];
+  match_interval_min?: number;
 }
+
+const WEEKDAYS: { value: number; label: string }[] = [
+  { value: 1, label: "Пн" },
+  { value: 2, label: "Вт" },
+  { value: 3, label: "Ср" },
+  { value: 4, label: "Чт" },
+  { value: 5, label: "Пт" },
+  { value: 6, label: "Сб" },
+  { value: 0, label: "Вс" },
+];
 
 function timeVal(v?: string, fallback = "18:00") {
   return v ? String(v).slice(0, 5) : fallback;
@@ -112,6 +124,27 @@ export function SettingsForm({
                 <Input id="daily_end_time" name="daily_end_time" type="time" defaultValue={timeVal(s.daily_end_time, "23:00")} />
               </div>
             </div>
+            <div>
+              <Label>Игровые дни недели</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {WEEKDAYS.map((d) => {
+                  const checked = (s.game_weekdays ?? []).includes(d.value);
+                  return (
+                    <label
+                      key={d.value}
+                      className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-sm has-[:checked]:border-accent has-[:checked]:bg-accent/10"
+                    >
+                      <input type="checkbox" name="weekdays" value={d.value} defaultChecked={checked} />
+                      {d.label}
+                    </label>
+                  );
+                })}
+              </div>
+              <p className="mt-1 text-xs text-muted">
+                Оставьте пустым — матчи могут ставиться в любой день диапазона.
+                Для «только по вторникам» отметьте «Вт».
+              </p>
+            </div>
           </section>
 
           <section className="space-y-3">
@@ -137,7 +170,16 @@ export function SettingsForm({
                 <Label htmlFor="periods_per_game">Четвертей в матче</Label>
                 <Input id="periods_per_game" name="periods_per_game" type="number" min={1} max={12} defaultValue={s.periods_per_game ?? 4} />
               </div>
+              <div>
+                <Label htmlFor="match_interval_min">Интервал между матчами (мин)</Label>
+                <Input id="match_interval_min" name="match_interval_min" type="number" min={5} max={360} defaultValue={s.match_interval_min ?? 60} />
+              </div>
             </div>
+            <p className="text-xs text-muted">
+              Интервал — время между началами матчей в один день. 60 ⇒ 19:00,
+              20:00, 21:00… Сколько матчей попадёт в один день, зависит от числа
+              команд и «мин. отдыха команды».
+            </p>
           </section>
 
           <section className="space-y-3">

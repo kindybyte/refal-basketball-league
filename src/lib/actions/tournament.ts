@@ -28,6 +28,7 @@ const schema = z.object({
   min_games_for_leaders: z.coerce.number().int().min(0).max(50),
   periods_per_game: z.coerce.number().int().min(1).max(12),
   groups_count: z.coerce.number().int().min(1).max(8).optional(),
+  match_interval_min: z.coerce.number().int().min(5).max(360),
 });
 
 export async function saveTournamentAction(
@@ -39,6 +40,11 @@ export async function saveTournamentAction(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Ошибка ввода" };
   }
   const d = parsed.data;
+  // Weekday checkboxes (repeated key) — parsed separately from the object schema.
+  const weekdays = formData
+    .getAll("weekdays")
+    .map((v) => Number(v))
+    .filter((n) => Number.isInteger(n) && n >= 0 && n <= 6);
   if (d.end_date < d.start_date) {
     return { ok: false, error: "Дата окончания раньше даты начала" };
   }
@@ -82,6 +88,8 @@ export async function saveTournamentAction(
     third_place_match: d.third_place_match === "on",
     min_games_for_leaders: d.min_games_for_leaders,
     periods_per_game: d.periods_per_game,
+    game_weekdays: weekdays,
+    match_interval_min: d.match_interval_min,
   };
   const { error: sErr } = await supabase
     .from("tournament_settings")

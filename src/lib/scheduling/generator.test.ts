@@ -190,6 +190,57 @@ describe("generateSchedule — single elimination", () => {
   });
 });
 
+describe("generateSchedule — weekdays and interval", () => {
+  it("restricts matches to the selected weekday (Tuesdays only)", () => {
+    const res = generateSchedule(
+      makeTeams(4),
+      baseSettings({
+        format: "round_robin",
+        startDate: "2026-11-01",
+        endDate: "2026-12-31",
+        weekdays: [2], // Tuesday
+        minRestHours: 0,
+        matchIntervalMin: 60,
+      }),
+    );
+    expect(res.errors).toEqual([]);
+    for (const m of res.matches) {
+      if (!m.scheduledAt) continue;
+      expect(new Date(`${m.scheduledAt}Z`).getUTCDay()).toBe(2);
+    }
+  });
+
+  it("spaces same-day matches hourly starting at the day start time", () => {
+    const res = generateSchedule(
+      makeTeams(4),
+      baseSettings({
+        format: "round_robin",
+        minRestHours: 0,
+        matchIntervalMin: 60,
+        dailyStartTime: "19:00",
+        dailyEndTime: "23:00",
+        courts: 1,
+      }),
+    );
+    const byDay = new Map<string, number[]>();
+    for (const m of res.matches) {
+      if (!m.scheduledAt) continue;
+      const [date, time] = m.scheduledAt.split("T");
+      const [h, mm] = time.split(":").map(Number);
+      const arr = byDay.get(date) ?? [];
+      arr.push(h * 60 + mm);
+      byDay.set(date, arr);
+    }
+    for (const [, times] of byDay) {
+      const sorted = [...times].sort((a, b) => a - b);
+      expect(sorted[0]).toBe(19 * 60); // first match at 19:00
+      for (let i = 1; i < sorted.length; i++) {
+        expect(sorted[i] - sorted[i - 1]).toBeGreaterThanOrEqual(60);
+      }
+    }
+  });
+});
+
 describe("generateSchedule — fit check", () => {
   it("reports an error when the calendar cannot fit the allowed days", () => {
     const res = generateSchedule(

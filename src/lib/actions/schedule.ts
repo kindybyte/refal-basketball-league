@@ -61,6 +61,8 @@ async function loadInputs() {
     courts: settings.courts_count,
     roundsPerOpponent: settings.rounds_per_opponent,
     thirdPlaceMatch: settings.third_place_match,
+    weekdays: settings.game_weekdays ?? [],
+    matchIntervalMin: settings.match_interval_min ?? 60,
   };
 
   return { tournamentId: tournament.id, settings: sched, teams, supabase };
