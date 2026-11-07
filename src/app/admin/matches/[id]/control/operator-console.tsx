@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,12 @@ function pointsFor(type: MatchEventType, made?: boolean): number {
   if (type === "fg2") return 2;
   if (type === "fg3") return 3;
   return 0;
+}
+
+function mmss(total: number): string {
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 const eventLabel: Record<string, string> = {
@@ -77,6 +83,33 @@ export function OperatorConsole({
   const [conn, setConn] = useState<"ok" | "error">("ok");
   const [banner, setBanner] = useState<string | null>(null);
   const [retry, setRetry] = useState<Record<string, unknown> | null>(null);
+
+  // Game clock (per quarter) and timeouts — operator-side only.
+  const [quarterSec, setQuarterSec] = useState(600); // 10:00 default
+  const [clock, setClock] = useState(600);
+  const [clockRunning, setClockRunning] = useState(false);
+  const [timeouts, setTimeouts] = useState<{ home: number; away: number }>({ home: 4, away: 4 });
+  const [activeTimeout, setActiveTimeout] = useState<{ side: "home" | "away"; left: number } | null>(null);
+
+  // Tick the game clock (paused during a timeout).
+  useEffect(() => {
+    if (!clockRunning || activeTimeout) return;
+    const id = setInterval(() => setClock((c) => Math.max(0, c - 1)), 1000);
+    return () => clearInterval(id);
+  }, [clockRunning, activeTimeout]);
+
+  useEffect(() => {
+    if (clock === 0) setClockRunning(false);
+  }, [clock]);
+
+  // Tick the active timeout countdown.
+  useEffect(() => {
+    if (!activeTimeout) return;
+    const id = setInterval(() => {
+      setActiveTimeout((t) => (t && t.left > 1 ? { ...t, left: t.left - 1 } : null));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [activeTimeout]);
 
   const score = useMemo(() => {
     let h = 0, a = 0;
@@ -130,10 +163,18 @@ export function OperatorConsole({
     setSaving(false);
     if (error) return setBanner(error.message);
     setPeriod(np);
+    // Reset the clock for the new quarter.
+    setClock(quarterSec);
+    setClockRunning(false);
+    setActiveTimeout(null);
   }
 
-  async function record(type: MatchEventType, opts: { made?: boolean; rebound?: ReboundKind } = {}) {
-    if (!selected) return setBanner("Сначала выберите игрока");
+  async function recordRaw(
+    teamId: string,
+    playerId: string | null,
+    type: MatchEventType,
+    opts: { made?: boolean; rebound?: ReboundKind } = {},
+  ) {
     if (!isLive) return setBanner("Матч не запущен");
 
     const clientEventId =
@@ -144,9 +185,10 @@ export function OperatorConsole({
     const params: Record<string, unknown> = {
       p_match_id: matchId,
       p_client_event_id: clientEventId,
-      p_team_id: selected.teamId,
+      p_team_id: teamId,
       p_event_type: type,
-      p_player_id: selected.id,
+      p_player_id: playerId,
+      p_game_clock_seconds: clock,
     };
     if (opts.made !== undefined) params.p_made = opts.made;
     if (opts.rebound) params.p_rebound_type = opts.rebound;
@@ -171,14 +213,32 @@ export function OperatorConsole({
         ...prev,
         {
           id: res.event_id,
-          teamId: selected.teamId,
-          playerId: selected.id,
+          teamId,
+          playerId,
           type,
           made: opts.made ?? null,
           points: pointsFor(type, opts.made),
         },
       ]);
     }
+  }
+
+  /** Player-attributed action (needs a selected player). */
+  function record(type: MatchEventType, opts: { made?: boolean; rebound?: ReboundKind } = {}) {
+    if (!selected) return setBanner("Сначала выберите игрока");
+    return recordRaw(selected.teamId, selected.id, type, opts);
+  }
+
+  /** Team-level quick score (no player attribution). */
+  function teamScore(side: "home" | "away", type: "ft" | "fg2" | "fg3") {
+    return recordRaw(side === "home" ? home.id : away.id, null, type, { made: true });
+  }
+
+  function startTimeout(side: "home" | "away") {
+    if (timeouts[side] <= 0) return setBanner("Тайм-ауты этой команды закончились");
+    setTimeouts((t) => ({ ...t, [side]: t[side] - 1 }));
+    setClockRunning(false);
+    setActiveTimeout({ side, left: 90 });
   }
 
   async function retryLast() {
@@ -233,22 +293,94 @@ export function OperatorConsole({
   const nameOf = (id: string | null) =>
     id ? players.find((p) => p.id === id)?.name ?? "—" : "—";
 
+  const renderTeamPanel = (side: "home" | "away") => {
+    const team = side === "home" ? home : away;
+    const value = side === "home" ? score.home : score.away;
+    return (
+      <div className="flex flex-col items-center gap-1.5">
+        <div className="flex items-center gap-1.5 text-sm font-semibold">
+          <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: team.color }} />
+          <span className="max-w-[9rem] truncate">{team.short}</span>
+        </div>
+        <div className="text-4xl font-black leading-none tabular-nums">{value}</div>
+        <div className="flex gap-1">
+          {(["ft", "fg2", "fg3"] as const).map((t, i) => (
+            <button
+              key={t}
+              data-tap
+              disabled={!isLive || saving}
+              onClick={() => teamScore(side, t)}
+              className="min-w-9 rounded-lg bg-accent px-2.5 py-1.5 text-sm font-bold text-accent-fg active:scale-95 disabled:opacity-40"
+            >
+              +{i + 1}
+            </button>
+          ))}
+        </div>
+        <button
+          data-tap
+          disabled={!isLive || timeouts[side] <= 0}
+          onClick={() => startTimeout(side)}
+          className="rounded-lg border border-border px-2 py-1 text-xs disabled:opacity-40"
+        >
+          Тайм-аут · {timeouts[side]}
+        </button>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-4">
       {/* Scoreboard */}
-      <div className="sticky top-14 z-20 rounded-2xl border border-border bg-surface p-3">
-        <div className="mb-1 flex items-center justify-between text-xs text-muted">
-          <span>
-            {isLive ? <LiveBadge /> : <Badge variant="muted">{status}</Badge>}
-          </span>
+      <div className="sticky top-14 z-20 space-y-3 rounded-2xl border border-border bg-surface p-3">
+        <div className="flex items-center justify-between text-xs text-muted">
+          <span>{isLive ? <LiveBadge /> : <Badge variant="muted">{status}</Badge>}</span>
           <span>Четверть {period}</span>
         </div>
-        <div className="flex items-center justify-between gap-3">
-          <TeamScore team={home} value={score.home} />
-          <span className="text-muted">:</span>
-          <TeamScore team={away} value={score.away} />
+
+        {/* Game clock */}
+        <div className="flex flex-col items-center gap-1.5 rounded-xl bg-surface-2/60 py-2">
+          <div className="text-3xl font-black tabular-nums">{mmss(clock)}</div>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setQuarterSec((q) => Math.max(60, q - 60))}
+              className="h-7 w-7 rounded-lg border border-border text-sm disabled:opacity-40"
+              disabled={clockRunning}
+              title="−1 мин к длине четверти"
+            >−</button>
+            <Button size="sm" variant={clockRunning ? "outline" : "primary"} onClick={() => setClockRunning((r) => !r)}>
+              {clockRunning ? "Пауза" : "Старт"}
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => { setClock(quarterSec); setClockRunning(false); }}>
+              Сброс
+            </Button>
+            <button
+              onClick={() => setQuarterSec((q) => Math.min(1800, q + 60))}
+              className="h-7 w-7 rounded-lg border border-border text-sm disabled:opacity-40"
+              disabled={clockRunning}
+              title="+1 мин к длине четверти"
+            >+</button>
+          </div>
+          <span className="text-[11px] text-muted">Четверть: {mmss(quarterSec)}</span>
         </div>
-        <div className="mt-2 flex flex-wrap gap-2">
+
+        {/* Scores + team quick buttons + timeouts */}
+        <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-2">
+          {renderTeamPanel("home")}
+          <span className="self-center pt-6 text-muted">:</span>
+          {renderTeamPanel("away")}
+        </div>
+
+        {/* Active timeout overlay */}
+        {activeTimeout && (
+          <div className="flex items-center justify-between rounded-xl bg-live/10 px-3 py-2">
+            <span className="text-sm font-semibold text-live">
+              Тайм-аут · {(activeTimeout.side === "home" ? home : away).short} · {mmss(activeTimeout.left)}
+            </span>
+            <Button size="sm" variant="danger" onClick={() => setActiveTimeout(null)}>Завершить</Button>
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-2">
           {status === "scheduled" && (
             <Button size="sm" onClick={startMatch} disabled={saving}>Начать матч</Button>
           )}
@@ -338,18 +470,6 @@ export function OperatorConsole({
           {events.length === 0 && <p className="text-sm text-muted">Событий пока нет.</p>}
         </div>
       </div>
-    </div>
-  );
-}
-
-function TeamScore({ team, value }: { team: Team; value: number }) {
-  return (
-    <div className="flex flex-1 flex-col items-center">
-      <span className="flex h-8 items-center gap-1.5 text-sm font-semibold">
-        <span className="h-3 w-3 rounded-full" style={{ backgroundColor: team.color }} />
-        {team.short}
-      </span>
-      <span className="text-4xl font-black tabular-nums">{value}</span>
     </div>
   );
 }
