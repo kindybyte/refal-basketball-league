@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge, LiveBadge } from "@/components/ui/badge";
 import { FormBanner } from "@/components/ui/field";
+import { features } from "@/lib/features";
 import type { MatchEventType, ReboundKind } from "@/lib/db-types";
 
 export interface ConsolePlayer {
@@ -410,45 +411,49 @@ export function OperatorConsole({
       )}
       {conn === "ok" && banner && <FormBanner kind="info">{banner}</FormBanner>}
 
-      {/* Player selection */}
-      <div className="grid grid-cols-2 gap-3">
-        <PlayerColumn team={home} players={homePlayers} selected={selected} onSelect={setSelected} />
-        <PlayerColumn team={away} players={awayPlayers} selected={selected} onSelect={setSelected} />
-      </div>
+      {/* Player-level stats panel — only when individual stats are enabled.
+          With stats off the operator scores per team from the scoreboard. */}
+      {features.individualStats && (
+        <>
+          <div className="grid grid-cols-2 gap-3">
+            <PlayerColumn team={home} players={homePlayers} selected={selected} onSelect={setSelected} />
+            <PlayerColumn team={away} players={awayPlayers} selected={selected} onSelect={setSelected} />
+          </div>
 
-      {/* Action bar */}
-      <div className="rounded-2xl border border-border bg-surface p-3">
-        <p className="mb-2 text-xs text-muted">
-          {selected ? (
-            <>Игрок: <strong className="text-foreground">№{selected.number} {selected.name}</strong></>
-          ) : (
-            "Выберите игрока, затем нажмите действие"
-          )}
-        </p>
-        <div className="space-y-2">
-          <Row label="Забито">
-            <Act onClick={() => record("ft", { made: true })} disabled={!isLive || !selected}>+1</Act>
-            <Act onClick={() => record("fg2", { made: true })} disabled={!isLive || !selected}>+2</Act>
-            <Act onClick={() => record("fg3", { made: true })} disabled={!isLive || !selected}>+3</Act>
-          </Row>
-          <Row label="Мимо">
-            <Act onClick={() => record("ft", { made: false })} disabled={!isLive || !selected}>штр</Act>
-            <Act onClick={() => record("fg2", { made: false })} disabled={!isLive || !selected}>2о</Act>
-            <Act onClick={() => record("fg3", { made: false })} disabled={!isLive || !selected}>3о</Act>
-          </Row>
-          <Row label="Подбор">
-            <Act onClick={() => record("rebound", { rebound: "offensive" })} disabled={!isLive || !selected}>атак.</Act>
-            <Act onClick={() => record("rebound", { rebound: "defensive" })} disabled={!isLive || !selected}>защ.</Act>
-          </Row>
-          <Row label="Прочее">
-            <Act onClick={() => record("assist")} disabled={!isLive || !selected}>пас</Act>
-            <Act onClick={() => record("steal")} disabled={!isLive || !selected}>перехват</Act>
-            <Act onClick={() => record("block")} disabled={!isLive || !selected}>блок</Act>
-            <Act onClick={() => record("turnover")} disabled={!isLive || !selected}>потеря</Act>
-            <Act onClick={() => record("foul")} disabled={!isLive || !selected}>фол</Act>
-          </Row>
-        </div>
-      </div>
+          <div className="rounded-2xl border border-border bg-surface p-3">
+            <p className="mb-2 text-xs text-muted">
+              {selected ? (
+                <>Игрок: <strong className="text-foreground">№{selected.number} {selected.name}</strong></>
+              ) : (
+                "Выберите игрока, затем нажмите действие"
+              )}
+            </p>
+            <div className="space-y-2">
+              <Row label="Забито">
+                <Act onClick={() => record("ft", { made: true })} disabled={!isLive || !selected}>+1</Act>
+                <Act onClick={() => record("fg2", { made: true })} disabled={!isLive || !selected}>+2</Act>
+                <Act onClick={() => record("fg3", { made: true })} disabled={!isLive || !selected}>+3</Act>
+              </Row>
+              <Row label="Мимо">
+                <Act onClick={() => record("ft", { made: false })} disabled={!isLive || !selected}>штр</Act>
+                <Act onClick={() => record("fg2", { made: false })} disabled={!isLive || !selected}>2о</Act>
+                <Act onClick={() => record("fg3", { made: false })} disabled={!isLive || !selected}>3о</Act>
+              </Row>
+              <Row label="Подбор">
+                <Act onClick={() => record("rebound", { rebound: "offensive" })} disabled={!isLive || !selected}>атак.</Act>
+                <Act onClick={() => record("rebound", { rebound: "defensive" })} disabled={!isLive || !selected}>защ.</Act>
+              </Row>
+              <Row label="Прочее">
+                <Act onClick={() => record("assist")} disabled={!isLive || !selected}>пас</Act>
+                <Act onClick={() => record("steal")} disabled={!isLive || !selected}>перехват</Act>
+                <Act onClick={() => record("block")} disabled={!isLive || !selected}>блок</Act>
+                <Act onClick={() => record("turnover")} disabled={!isLive || !selected}>потеря</Act>
+                <Act onClick={() => record("foul")} disabled={!isLive || !selected}>фол</Act>
+              </Row>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Action history */}
       <div>
@@ -458,7 +463,7 @@ export function OperatorConsole({
             <div key={e.id} className="flex items-center justify-between rounded-lg bg-surface-2/60 px-2 py-1.5 text-sm">
               <span>
                 <span className="font-medium">{e.teamId === home.id ? home.short : away.short}</span>{" "}
-                {labelOf(e)} · {nameOf(e.playerId)}
+                {labelOf(e)}{e.playerId ? ` · ${nameOf(e.playerId)}` : ""}
               </span>
               {isLive && (
                 <button className="text-xs text-live hover:underline" onClick={() => voidEvent(e.id)}>
