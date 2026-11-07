@@ -106,6 +106,10 @@ export interface PublicMatch {
   winner_team_id: string | null;
   home_logo_path: string | null;
   away_logo_path: string | null;
+  clock_seconds: number | null;
+  clock_running: boolean | null;
+  clock_updated_at: string | null;
+  current_period: number | null;
 }
 
 export interface PublicMatchEvent {

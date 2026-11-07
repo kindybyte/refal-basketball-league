@@ -28,6 +28,12 @@ function evLabel(e: PublicMatchEvent): string {
   return label[e.event_type] ?? e.event_type;
 }
 
+function mmss(total: number): string {
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
 export function MatchLiveView({
   matchId,
   initialMatch,
@@ -40,8 +46,24 @@ export function MatchLiveView({
   const supabase = createClient();
   const [match, setMatch] = useState(initialMatch);
   const [events, setEvents] = useState(initialEvents);
+  const [now, setNow] = useState(() => Date.now());
 
   const isLive = match.status === "live";
+
+  // Local 1-second tick to animate the clock between polls.
+  useEffect(() => {
+    if (!isLive) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [isLive]);
+
+  // Derive the live remaining time from the shared clock state.
+  const remaining = (() => {
+    if (match.clock_seconds == null) return null;
+    if (!match.clock_running || !match.clock_updated_at) return match.clock_seconds;
+    const elapsed = Math.floor((now - new Date(match.clock_updated_at).getTime()) / 1000);
+    return Math.max(0, match.clock_seconds - elapsed);
+  })();
 
   // Near-real-time via polling the public views (anon-safe under RLS). Only
   // active while the match is live, to keep it light.
@@ -89,6 +111,12 @@ export function MatchLiveView({
                 <span className="mx-1 text-muted">:</span>
                 {match.away_score ?? "–"}
               </div>
+              {isLive && remaining != null && (
+                <div className="mt-1 text-sm font-bold tabular-nums">
+                  {match.current_period ? `${match.current_period}-я чв · ` : ""}
+                  {mmss(remaining)}
+                </div>
+              )}
               <Badge variant={isLive ? "live" : "muted"} className="mt-1">
                 {statusLabel(match.status)}
               </Badge>

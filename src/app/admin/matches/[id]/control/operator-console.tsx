@@ -100,7 +100,11 @@ export function OperatorConsole({
   }, [clockRunning, activeTimeout]);
 
   useEffect(() => {
-    if (clock === 0) setClockRunning(false);
+    if (clock === 0 && clockRunning) {
+      setClockRunning(false);
+      syncClock(0, false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clock]);
 
   // Tick the active timeout countdown.
@@ -152,6 +156,7 @@ export function OperatorConsole({
     setStatus("live");
     setPeriod(1);
     setBanner(null);
+    syncClock(quarterSec, false);
   }
 
   async function nextPeriod() {
@@ -168,6 +173,7 @@ export function OperatorConsole({
     setClock(quarterSec);
     setClockRunning(false);
     setActiveTimeout(null);
+    syncClock(quarterSec, false);
   }
 
   async function recordRaw(
@@ -239,7 +245,33 @@ export function OperatorConsole({
     if (timeouts[side] <= 0) return setBanner("Тайм-ауты этой команды закончились");
     setTimeouts((t) => ({ ...t, [side]: t[side] - 1 }));
     setClockRunning(false);
+    syncClock(clock, false);
     setActiveTimeout({ side, left: 90 });
+  }
+
+  /** Push the clock state to the DB so spectators can follow it (fire-and-forget). */
+  async function syncClock(seconds: number, running: boolean) {
+    try {
+      await supabase.rpc("set_match_clock", {
+        p_match_id: matchId,
+        p_seconds: seconds,
+        p_running: running,
+      });
+    } catch {
+      /* best effort — the operator's local clock keeps working */
+    }
+  }
+
+  function toggleClock() {
+    const next = !clockRunning;
+    setClockRunning(next);
+    syncClock(clock, next);
+  }
+
+  function resetClock() {
+    setClock(quarterSec);
+    setClockRunning(false);
+    syncClock(quarterSec, false);
   }
 
   async function retryLast() {
@@ -348,10 +380,10 @@ export function OperatorConsole({
               disabled={clockRunning}
               title="−1 мин к длине четверти"
             >−</button>
-            <Button size="sm" variant={clockRunning ? "outline" : "primary"} onClick={() => setClockRunning((r) => !r)}>
+            <Button size="sm" variant={clockRunning ? "outline" : "primary"} onClick={toggleClock}>
               {clockRunning ? "Пауза" : "Старт"}
             </Button>
-            <Button size="sm" variant="outline" onClick={() => { setClock(quarterSec); setClockRunning(false); }}>
+            <Button size="sm" variant="outline" onClick={resetClock}>
               Сброс
             </Button>
             <button
