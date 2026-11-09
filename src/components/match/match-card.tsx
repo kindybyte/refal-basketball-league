@@ -6,13 +6,15 @@ import { TeamAvatar } from "@/components/team-avatar";
 import { formatDateTime, stageLabel, statusLabel } from "@/lib/format";
 
 function TeamRow({
-  label,
+  name,
+  short,
   color,
   logoPath,
   score,
   winner,
 }: {
-  label: string;
+  name: string;
+  short: string;
   color: string | null;
   logoPath: string | null;
   score: number | null;
@@ -21,9 +23,9 @@ function TeamRow({
   return (
     <div className="flex items-center justify-between gap-2">
       <div className="flex min-w-0 items-center gap-2">
-        <TeamAvatar short={label} name={label} color={color} logoPath={logoPath} size={24} />
+        <TeamAvatar short={short} name={name} color={color} logoPath={logoPath} size={24} />
         <span className={`truncate text-sm ${winner ? "font-bold" : ""}`}>
-          {label}
+          {name}
         </span>
       </div>
       <span
@@ -58,14 +60,16 @@ export function MatchCard({ match }: { match: PublicMatch }) {
         </div>
         <div className="space-y-1.5">
           <TeamRow
-            label={match.home_label}
+            name={match.home_name ?? match.home_label}
+            short={match.home_label}
             color={match.home_color}
             logoPath={match.home_logo_path}
             score={match.home_score}
             winner={homeWin}
           />
           <TeamRow
-            label={match.away_label}
+            name={match.away_name ?? match.away_label}
+            short={match.away_label}
             color={match.away_color}
             logoPath={match.away_logo_path}
             score={match.away_score}

@@ -254,9 +254,10 @@ function assignTimes(
       }
       if (!ok) continue;
 
-      // Assign
+      // Assign. The "+06:00" marks these as Bishkek wall-clock times so the
+      // timestamptz column stores the correct instant (spec venue: Бишкек).
       usedSlot.add(slotKey);
-      match.scheduledAt = `${slot.date}T${pad(Math.floor(slot.minute / 60))}:${pad(slot.minute % 60)}:00`;
+      match.scheduledAt = `${slot.date}T${pad(Math.floor(slot.minute / 60))}:${pad(slot.minute % 60)}:00+06:00`;
       match.court = slot.court;
       const end = slot.abs + settings.matchDurationMin;
       lastEndAbs = Math.max(lastEndAbs, end);

@@ -87,9 +87,9 @@ export default async function HomePage() {
                 <span>{formatDateTime(nextMatch.scheduled_at)}</span>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <TeamBig label={nextMatch.home_label} color={nextMatch.home_color} logoPath={nextMatch.home_logo_path} />
+                <TeamBig name={nextMatch.home_name ?? nextMatch.home_label} short={nextMatch.home_label} color={nextMatch.home_color} logoPath={nextMatch.home_logo_path} />
                 <span className="text-sm font-semibold text-muted">VS</span>
-                <TeamBig label={nextMatch.away_label} color={nextMatch.away_color} logoPath={nextMatch.away_logo_path} />
+                <TeamBig name={nextMatch.away_name ?? nextMatch.away_label} short={nextMatch.away_label} color={nextMatch.away_color} logoPath={nextMatch.away_logo_path} />
               </div>
               {nextMatch.scheduled_at && (
                 <div className="flex flex-col items-center gap-1 rounded-xl bg-surface-2 py-3">
@@ -285,18 +285,20 @@ function SectionTitle({
 }
 
 function TeamBig({
-  label,
+  name,
+  short,
   color,
   logoPath,
 }: {
-  label: string;
+  name: string;
+  short: string;
   color: string | null;
   logoPath?: string | null;
 }) {
   return (
     <div className="flex flex-1 flex-col items-center gap-2">
-      <TeamAvatar short={label} name={label} color={color} logoPath={logoPath} size={56} />
-      <span className="text-center text-sm font-semibold">{label}</span>
+      <TeamAvatar short={short} name={name} color={color} logoPath={logoPath} size={56} />
+      <span className="text-center text-sm font-semibold">{name}</span>
     </div>
   );
 }

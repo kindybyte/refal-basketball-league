@@ -104,7 +104,7 @@ export function MatchLiveView({
       <Card>
         <CardContent className="p-5">
           <div className="grid grid-cols-3 items-center gap-2">
-            <TeamSide label={match.home_label} color={match.home_color} logoPath={match.home_logo_path} win={homeWin} />
+            <TeamSide name={match.home_name ?? match.home_label} short={match.home_label} color={match.home_color} logoPath={match.home_logo_path} win={homeWin} />
             <div className="text-center">
               <div className="text-4xl font-black tabular-nums">
                 {match.home_score ?? "–"}
@@ -121,7 +121,7 @@ export function MatchLiveView({
                 {statusLabel(match.status)}
               </Badge>
             </div>
-            <TeamSide label={match.away_label} color={match.away_color} logoPath={match.away_logo_path} win={awayWin} right />
+            <TeamSide name={match.away_name ?? match.away_label} short={match.away_label} color={match.away_color} logoPath={match.away_logo_path} win={awayWin} right />
           </div>
         </CardContent>
       </Card>
@@ -161,13 +161,15 @@ export function MatchLiveView({
 }
 
 function TeamSide({
-  label,
+  name,
+  short,
   color,
   logoPath,
   win,
   right,
 }: {
-  label: string;
+  name: string;
+  short: string;
   color: string | null;
   logoPath: string | null;
   win: boolean;
@@ -175,8 +177,8 @@ function TeamSide({
 }) {
   return (
     <div className={`flex flex-col items-center gap-2 ${right ? "order-last" : ""}`}>
-      <TeamAvatar short={label} name={label} color={color} logoPath={logoPath} size={56} />
-      <span className={`text-center text-sm ${win ? "font-bold" : "font-medium"}`}>{label}</span>
+      <TeamAvatar short={short} name={name} color={color} logoPath={logoPath} size={56} />
+      <span className={`text-center text-sm ${win ? "font-bold" : "font-medium"}`}>{name}</span>
     </div>
   );
 }

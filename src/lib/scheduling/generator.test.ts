@@ -206,7 +206,8 @@ describe("generateSchedule — weekdays and interval", () => {
     expect(res.errors).toEqual([]);
     for (const m of res.matches) {
       if (!m.scheduledAt) continue;
-      expect(new Date(`${m.scheduledAt}Z`).getUTCDay()).toBe(2);
+      // Weekday of the local (Bishkek) calendar date in the scheduled string.
+      expect(new Date(`${m.scheduledAt.slice(0, 10)}T00:00:00Z`).getUTCDay()).toBe(2);
     }
   });
 

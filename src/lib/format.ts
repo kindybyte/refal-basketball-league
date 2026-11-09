@@ -1,18 +1,26 @@
+// All times are shown in Bishkek time (UTC+6, no DST) regardless of where the
+// code runs — server (often UTC) or the viewer's browser. This keeps match
+// times consistent everywhere.
+const TZ = "Asia/Bishkek";
+
 const dateFmt = new Intl.DateTimeFormat("ru-RU", {
   day: "numeric",
   month: "long",
+  timeZone: TZ,
 });
 const dateTimeFmt = new Intl.DateTimeFormat("ru-RU", {
   day: "numeric",
   month: "long",
   hour: "2-digit",
   minute: "2-digit",
+  timeZone: TZ,
 });
 const timeFmt = new Intl.DateTimeFormat("ru-RU", {
   hour: "2-digit",
   minute: "2-digit",
+  timeZone: TZ,
 });
-const weekdayFmt = new Intl.DateTimeFormat("ru-RU", { weekday: "short" });
+const weekdayFmt = new Intl.DateTimeFormat("ru-RU", { weekday: "short", timeZone: TZ });
 
 export function formatDate(iso: string | null): string {
   if (!iso) return "—";
